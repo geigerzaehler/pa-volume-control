@@ -2,6 +2,7 @@
 
 module Test.Setup (
     setup
+  , Notification
 ) where
 
 

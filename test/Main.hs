@@ -2,6 +2,7 @@
 
 module Main where
 
+import Control.Applicative
 import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.IO.Class
@@ -22,6 +23,7 @@ import System.Exit
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.Runners.AntXML
 
 import Test.Setup
 
@@ -32,7 +34,9 @@ main = runResourceT $ do
     liftIO $ do
         prepareSearchPath
         setEnv "PACMD_STATE_FILE" "pa-state~"
-        defaultMain (test_toggleMute lastNotification)
+        defaultMainWithIngredients
+            (antXMLRunner:defaultIngredients)
+            (test_toggleMute lastNotification)
 
 
 
@@ -48,12 +52,13 @@ test_toggleMute lastNotification = testCaseSteps "toggle mute" $ \step -> do
     step "Default sink mute"
     runVolumeControl ["mutetoggle"]
     assertStateLine "set-sink-mute DEFAULT_SINK yes"
-    (_, message) <- (atomically $ readTVar lastNotification)
-    putStrLn message
+    assertNotificationMessage lastNotification "Muted 50%"
+
 
     step "Default sink unmute"
     runVolumeControl ["mutetoggle"]
     assertStateLine "set-sink-mute DEFAULT_SINK no"
+    assertNotificationMessage lastNotification "Volume 50%"
 
     writePacmdState
         [ "set-default-sink OTHER_SINK"
@@ -80,6 +85,10 @@ writePacmdState :: [String] -> IO ()
 writePacmdState contents = do
     T.writeFile "pa-state~" $ T.pack $ unlines contents
 
+assertNotificationMessage :: TVar Notification -> String -> IO ()
+assertNotificationMessage lastNotification expected = do
+    (_, message) <- (atomically $ readTVar lastNotification)
+    message @=? expected
 
 assertStateLine :: String -> IO ()
 assertStateLine line = do
@@ -116,9 +125,15 @@ runVolumeControl args = do
 -- 'pacmd' stub command are available from the search path.
 prepareSearchPath :: IO ()
 prepareSearchPath  = do
-    cabalBuildDir <- getEnv "CABAL_BUILD_DIR"
+    cabalBuildDir <- lookupEnv "CABAL_BUILD_DIR"
+    haskellDistDir <- lookupEnv "HASKELL_DIST_DIR"
+    buildDir <- maybe
+        (error "Either the CABAL_BUILD_DIR or the HASKELL_DIST_DIR environment variables must be set")
+        return
+        (cabalBuildDir <|> haskellDistDir)
+
     let additionalPaths =
-            [ cabalBuildDir </> "pa-volume-control"
+            [ buildDir </> "pa-volume-control"
             , "./test/bin-stubs"
             ]
     searchPath <- getEnv "PATH"
