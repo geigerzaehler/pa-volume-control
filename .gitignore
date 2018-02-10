@@ -1,0 +1,5 @@
+.stack-work/
+pa-volume-control.cabal
+dist
+dist-newstyle
+*~

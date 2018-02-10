@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# This is a stub for the pacmd that stores all its state in a local
+# state file.
+
+STATE_FILE=pa-state~
+if [[ ! -f $STATE_FILE ]]; then
+  echo "STATE_FILE environment variable does not point to a file" >&2
+  exit 1
+fi
+
+if [[ "$1" == "dump" ]]; then
+  cat $STATE_FILE
+else
+  # Replace all lines that starts with the first argument with the
+  # whole list of arguments
+  # TODO This is not correct for `set-sink-XXX` where we need to match
+  # against all the lines.
+  sed -i "/^$1/c $*" $STATE_FILE
+fi
