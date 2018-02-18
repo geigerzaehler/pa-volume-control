@@ -11,8 +11,9 @@ import Options.Applicative
 
 helpString :: String
 helpString =
-    "Usage:\n\
-    \        pa-volume-control volup [--nolimit]\n\
+    "Change volume through PulseAudio\n\n\
+    \Usage:\n\
+    \        pa-volume-control volup [\n\
     \        pa-volume-control voldown\n\
     \        pa-volume-control mutetoggle\n"
 
