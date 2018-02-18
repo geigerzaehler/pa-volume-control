@@ -1,5 +1,3 @@
-* Write proper readme
-* Use `interpolate` for string interpolation
 * Better error messages. For example when parsing the `pacmd` output we
   should throw an error with an informative message whenever a step fails.
   - Inform when could not connect to dbus
@@ -11,3 +9,4 @@
   should then also test against this.
 * Set XDG environment variables for tests so that we can check that we write to
   the cache.
+* Use Template Haskell string interpolation intests
