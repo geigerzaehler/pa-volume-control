@@ -12,9 +12,10 @@ import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
-import Text.Printf
-import System.Process
 import System.Exit
+import System.Environment
+import System.Process
+import Text.Printf
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -75,7 +76,8 @@ test_toggleMute lastNotification = testCaseSteps "toggle mute" $ \step -> do
 
 writePacmdState :: [String] -> IO ()
 writePacmdState contents = do
-    T.writeFile "pa-state~" $ T.pack $ unlines contents
+    filePath <- getEnv "PACMD_STATE_FILE"
+    T.writeFile filePath $ T.pack $ unlines contents
 
 
 assertNotificationMessage :: TVar Notification -> String -> IO ()
@@ -95,7 +97,8 @@ assertStateLine line = do
             \-- ACTUAL -------\n\
             \%s\
             \-----------------"
-    contents <- T.unpack <$> T.readFile "pa-state~"
+    filePath <- getEnv "PACMD_STATE_FILE"
+    contents <- T.unpack <$> T.readFile filePath
     let found = find (== line) (lines contents)
     when (isNothing found) $
         assertFailure $ printf errorTemplate line contents

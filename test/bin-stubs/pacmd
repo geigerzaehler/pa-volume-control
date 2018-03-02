@@ -3,16 +3,15 @@
 # This is a stub for the pacmd that stores all its state in a local
 # state file.
 
-STATE_FILE=pa-state~
-if [[ ! -f $STATE_FILE ]]; then
+if [[ ! -f $PACMD_STATE_FILE ]]; then
   echo "STATE_FILE environment variable does not point to a file" >&2
   exit 1
 fi
 
 if [[ "$1" == "dump" ]]; then
-  cat $STATE_FILE
+  cat $PACMD_STATE_FILE
 elif [[ "$1" =~ ^set-sink-[a-z]+$ ]]; then
-  sed -i "/^$1 $2/c $*" $STATE_FILE
+  sed -i "/^$1 $2/c $*" $PACMD_STATE_FILE
 else
-  sed -i "/^$1/c $*" $STATE_FILE
+  sed -i "/^$1/c $*" $PACMD_STATE_FILE
 fi

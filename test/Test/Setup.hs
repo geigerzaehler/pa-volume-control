@@ -16,13 +16,13 @@ import Data.Maybe
 import Data.List
 import Data.Word
 
-import System.Directory (removeDirectoryRecursive)
+import System.Directory (removeFile, removeDirectoryRecursive)
 import System.Environment
 import System.FilePath
 import System.Process
 import System.Posix.Signals
 import System.Posix.Types
-import System.IO.Temp (createTempDirectory, getCanonicalTemporaryDirectory)
+import System.IO.Temp (createTempDirectory, emptySystemTempFile, getCanonicalTemporaryDirectory)
 
 import qualified DBus as DBus
 import qualified DBus.Client as DBus
@@ -38,15 +38,17 @@ type Notification = (Word32, String)
 -- `pa-volume-control` are available.
 setup :: (MonadIO m, MonadResource m) => m (TVar Notification)
 setup = do
-    liftIO $ do
-        prepareSearchPath
-        setEnv "PACMD_STATE_FILE" "pa-state~"
+    liftIO prepareSearchPath
     setupCacheDirectory
+    setupPacmdMock
     setupDbus
 
 
 -- | Make sure that the local build of 'pa-volume-control' and the
 -- 'pacmd' stub command are available from the search path.
+--
+-- TODO Remove this and give the full path when running the
+-- pa-volume-control command.
 prepareSearchPath :: IO ()
 prepareSearchPath  = do
     cabalBuildDir <- lookupEnv "CABAL_BUILD_DIR"
@@ -55,14 +57,27 @@ prepareSearchPath  = do
         (error "Either the CABAL_BUILD_DIR or the HASKELL_DIST_DIR environment variables must be set")
         return
         (cabalBuildDir <|> haskellDistDir)
+    prependSearchPath $ buildDir </> "pa-volume-control"
 
-    let additionalPaths =
-            [ buildDir </> "pa-volume-control"
-            , "./test/bin-stubs"
-            ]
+
+-- | Make the mock @pacmd@ available in the search path and return the
+-- file patch for the state file
+setupPacmdMock :: (MonadIO m, MonadResource m) => m ()
+setupPacmdMock = do
+    (_, filePath) <- allocate
+        (emptySystemTempFile "pa-volume-control-test-pa-state")
+        removeFile
+    liftIO $ setEnv "PACMD_STATE_FILE" filePath
+    liftIO $ prependSearchPath "./test/bin-stubs"
+    return ()
+
+
+prependSearchPath :: FilePath -> IO ()
+prependSearchPath path = do
     searchPath <- getEnv "PATH"
-    let newSearchPath = intercalate [ searchPathSeparator ] $ additionalPaths ++ [ searchPath ]
+    let newSearchPath = path ++ [searchPathSeparator] ++ searchPath
     setEnv "PATH" newSearchPath
+
 
 
 -- | Create a temporary directory to use as XDG_CACHE_HOME
