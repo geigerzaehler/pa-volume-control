@@ -11,7 +11,6 @@ import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import           Data.Word
 
 import Text.Printf
 import System.Process
@@ -35,40 +34,39 @@ main = runResourceT $ do
 
 
 
-test_toggleMute :: TVar (Word32, String) -> TestTree
+test_toggleMute :: TVar Notification -> TestTree
 test_toggleMute lastNotification = testCaseSteps "toggle mute" $ \step -> do
     writePacmdState
         [ "set-default-sink DEFAULT_SINK"
-        , "set-sink-volume DEFAULT_SINK 0x8000"
-        , "set-sink-mute DEFAULT_SINK no"
-        ]
-
-    step "Default sink mute"
-    runVolumeControl ["mutetoggle"]
-    assertStateLine "set-sink-mute DEFAULT_SINK yes"
-    assertNotificationMessage lastNotification "Muted 50%"
-
-
-    step "Default sink unmute"
-    runVolumeControl ["mutetoggle"]
-    assertStateLine "set-sink-mute DEFAULT_SINK no"
-    assertNotificationMessage lastNotification "Volume 50%"
-
-    writePacmdState
-        [ "set-default-sink OTHER_SINK"
         , "set-sink-volume DEFAULT_SINK 0x8000"
         , "set-sink-mute DEFAULT_SINK no"
         , "set-sink-volume OTHER_SINK 0x8000"
         , "set-sink-mute OTHER_SINK yes"
         ]
 
-    -- TODO assert that the other sink is not toggled
+    step "Default sink mute"
+    runVolumeControl ["mutetoggle"]
+    assertStateLine "set-sink-mute DEFAULT_SINK yes"
+    assertStateLine "set-sink-mute OTHER_SINK yes"
+    assertNotificationMessage lastNotification "Muted 50%"
+
+
+    step "Default sink unmute"
+    runVolumeControl ["mutetoggle"]
+    assertStateLine "set-sink-mute DEFAULT_SINK no"
+    assertStateLine "set-sink-mute OTHER_SINK yes"
+    assertNotificationMessage lastNotification "Volume 50%"
+
+    _ <- readProcess "pacmd" ["set-default-sink", "OTHER_SINK"] []
+
     step "Other sink unmute"
     runVolumeControl ["mutetoggle"]
+    assertStateLine "set-sink-mute DEFAULT_SINK no"
     assertStateLine "set-sink-mute OTHER_SINK no"
 
     step "Other sink mute"
     runVolumeControl ["mutetoggle"]
+    assertStateLine "set-sink-mute DEFAULT_SINK no"
     assertStateLine "set-sink-mute OTHER_SINK yes"
 
 --
