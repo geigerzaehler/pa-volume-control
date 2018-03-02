@@ -2,7 +2,6 @@
 
 module Main where
 
-import Control.Applicative
 import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.IO.Class
@@ -10,14 +9,11 @@ import Control.Monad.Trans.Resource
 
 import           Data.Foldable
 import           Data.Maybe
-import           Data.List
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Data.Word
 
 import Text.Printf
-import System.Environment
-import System.FilePath
 import System.Process
 import System.Exit
 
@@ -32,8 +28,6 @@ main :: IO ()
 main = runResourceT $ do
     lastNotification <- setup
     liftIO $ do
-        prepareSearchPath
-        setEnv "PACMD_STATE_FILE" "pa-state~"
         defaultMainWithIngredients
             (antXMLRunner:defaultIngredients)
             (test_toggleMute lastNotification)
@@ -85,11 +79,15 @@ writePacmdState :: [String] -> IO ()
 writePacmdState contents = do
     T.writeFile "pa-state~" $ T.pack $ unlines contents
 
+
 assertNotificationMessage :: TVar Notification -> String -> IO ()
 assertNotificationMessage lastNotification expected = do
     (_, message) <- (atomically $ readTVar lastNotification)
     message @=? expected
 
+
+-- | Assert that the given string is present in the pulseaudio mock
+-- state.
 assertStateLine :: String -> IO ()
 assertStateLine line = do
     let errorTemplate =
@@ -119,23 +117,3 @@ runVolumeControl args = do
         ExitFailure code ->
             assertFailure $ printf errorTemplate code stderr'
         _ -> return ()
-
-
--- | Make sure that the local build of 'pa-volume-control' and the
--- 'pacmd' stub command are available from the search path.
-prepareSearchPath :: IO ()
-prepareSearchPath  = do
-    cabalBuildDir <- lookupEnv "CABAL_BUILD_DIR"
-    haskellDistDir <- lookupEnv "HASKELL_DIST_DIR"
-    buildDir <- maybe
-        (error "Either the CABAL_BUILD_DIR or the HASKELL_DIST_DIR environment variables must be set")
-        return
-        (cabalBuildDir <|> haskellDistDir)
-
-    let additionalPaths =
-            [ buildDir </> "pa-volume-control"
-            , "./test/bin-stubs"
-            ]
-    searchPath <- getEnv "PATH"
-    let newSearchPath = intercalate [ searchPathSeparator ] $ additionalPaths ++ [ searchPath ]
-    setEnv "PATH" newSearchPath

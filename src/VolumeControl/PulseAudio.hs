@@ -5,6 +5,7 @@ module VolumeControl.PulseAudio (
   , setSinkVolume
   , setSinkMute
   , SinkState(..)
+  , Volume
 ) where
 
 
@@ -20,6 +21,25 @@ import           System.Process
 -- | Volume as a percentage
 type Volume = Int
 
+
+--
+-- Volume control
+--
+setSinkVolume :: String -> Volume -> IO ()
+setSinkVolume sink volume = do
+    let volume' = max volume 0
+    let volString = "0x" <> showHex (volumeToRaw volume') ""
+    _ <- readProcessWithExitCode "pacmd" ["set-sink-volume", sink, volString] ""
+    return ()
+
+
+setSinkMute :: String -> Bool -> IO ()
+setSinkMute sinkName isMute = do
+    let muteString = if isMute then "yes" else "no"
+    _ <- readProcessWithExitCode "pacmd" ["set-sink-mute", sinkName, muteString] ""
+    return ()
+
+
 data SinkState = SinkState
     { _sinkVolume :: Int
     , _sinkIsMuted :: Bool
@@ -29,6 +49,7 @@ data SinkState = SinkState
 type PulseAudioDump = [(String, [String])]
 
 
+-- | Get the sink state for the default sink from the @pacmd@ command.
 getDefaultSinkState :: IO SinkState
 getDefaultSinkState = do
     infoDump <- getDump
@@ -60,44 +81,6 @@ readDefaultSink = asum . fmap match
     match _ = Nothing
 
 
---
--- Volumes
---
-
-
-maxAbsoluteVolume :: Int32
-maxAbsoluteVolume = 0x10000
-
-volumeFromRaw :: Int32 -> Volume
-volumeFromRaw volume = round $ 100 * (toRational volume) /  (toRational maxAbsoluteVolume)
-
-volumeToRaw :: Volume -> Int32
-volumeToRaw percentage = round $ (toRational percentage) / 100 * (toRational maxAbsoluteVolume)
-
-
-
---
--- Volume control
---
-
-readSinkVolume :: String -> PulseAudioDump -> Maybe Volume
-readSinkVolume sinkName = asum . fmap match
-    where
-    match x
-        | ("set-sink-volume", [ (sinkName'), volume ]) <- x
-        , sinkName' == sinkName
-        = volumeFromRaw <$> readMaybe volume
-        | otherwise = Nothing
-
-
-setSinkVolume :: String -> Volume -> IO ()
-setSinkVolume sink volume = do
-    let volume' = max volume 0
-    let volString = "0x" <> showHex (volumeToRaw volume') ""
-    _ <- readProcessWithExitCode "pacmd" ["set-sink-volume", sink, volString] ""
-    return ()
-
-
 readSinkMute :: String -> PulseAudioDump -> Maybe Bool
 readSinkMute sinkName = asum . fmap match
     where
@@ -111,8 +94,27 @@ readSinkMute sinkName = asum . fmap match
     readBool _ = Nothing
 
 
-setSinkMute :: String -> Bool -> IO ()
-setSinkMute sinkName isMute = do
-    let muteString = if isMute then "yes" else "no"
-    _ <- readProcessWithExitCode "pacmd" ["set-sink-mute", sinkName, muteString] ""
-    return ()
+readSinkVolume :: String -> PulseAudioDump -> Maybe Volume
+readSinkVolume sinkName = asum . fmap match
+    where
+    match x
+        | ("set-sink-volume", [ (sinkName'), volume ]) <- x
+        , sinkName' == sinkName
+        = volumeFromRaw <$> readMaybe volume
+        | otherwise = Nothing
+
+
+
+--
+-- Volumes
+--
+
+
+maxAbsoluteVolume :: Int32
+maxAbsoluteVolume = 0x10000
+
+volumeFromRaw :: Int32 -> Volume
+volumeFromRaw volume = round $ 100 * (toRational volume) /  (toRational maxAbsoluteVolume)
+
+volumeToRaw :: Volume -> Int32
+volumeToRaw percentage = round $ (toRational percentage) / 100 * (toRational maxAbsoluteVolume)

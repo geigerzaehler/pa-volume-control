@@ -4,10 +4,13 @@
 module Main where
 
 import Data.Monoid ((<>))
-
 import VolumeControl.Command
 import Options.Applicative
 
+main :: IO ()
+main = do
+    cmd <- execParser $ info commandParser mempty
+    execCommand cmd
 
 helpString :: String
 helpString =
@@ -18,8 +21,8 @@ helpString =
     \        pa-volume-control mutetoggle\n"
 
 
-rootParser :: Parser Command
-rootParser =
+commandParser :: Parser Command
+commandParser =
     (infoOption helpString $ short 'h' <> long "help")
     <*> subparser
         ( volumeUpCommand <> volumeDownCommand <> toggleMuteCommand)
@@ -35,8 +38,3 @@ volumeDownCommand = command "voldown" (info (pure VolumeDown) mempty)
 
 toggleMuteCommand :: Mod CommandFields Command
 toggleMuteCommand = command "mutetoggle" (info (pure ToggleMute) mempty)
-
-main :: IO ()
-main = do
-    cmd <- execParser $ info rootParser mempty
-    execCommand cmd

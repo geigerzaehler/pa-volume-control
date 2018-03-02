@@ -31,7 +31,6 @@ jobs:
       - run:
           name: Test
           command: |
-            mkdir ~/.cache
             mkdir report
             stack test --ta --xml=report/test.xml
       - store_test_results:
