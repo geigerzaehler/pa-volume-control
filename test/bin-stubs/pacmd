@@ -11,10 +11,8 @@ fi
 
 if [[ "$1" == "dump" ]]; then
   cat $STATE_FILE
+elif [[ "$1" =~ ^set-sink-[a-z]+$ ]]; then
+  sed -i "/^$1 $2/c $*" $STATE_FILE
 else
-  # Replace all lines that starts with the first argument with the
-  # whole list of arguments
-  # TODO This is not correct for `set-sink-XXX` where we need to match
-  # against all the lines.
   sed -i "/^$1/c $*" $STATE_FILE
 fi
