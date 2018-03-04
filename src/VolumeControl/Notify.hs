@@ -14,7 +14,7 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Word (Word32)
 
-import qualified DBus as DBus
+import qualified DBus
 import qualified DBus.Client as DBus
 
 import           System.Directory
@@ -28,7 +28,7 @@ notifyVolume volume isMuted = do
     client <- DBus.connectSession
     let label = if isMuted then "Muted" else "Volume"
     newNotificationId <- notify client $ makeNotification
-        { summary = (label <> " " <> show volume <> "%" :: String)
+        { summary = label <> " " <> show volume <> "%" :: String
         , body = volumeBar isMuted volume
         , replacesId = notificationId }
     when (newNotificationId /= notificationId) $
@@ -102,9 +102,8 @@ readNotificationId = do
     if not exists
     then
         return 0
-    else do
-        contents <- readFile file
-        return $ read contents
+    else
+        read <$> readFile file
 
 
 --

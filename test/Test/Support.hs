@@ -54,7 +54,7 @@ writePacmdState contents = do
 
 assertNotificationMessage :: TVar Notification -> String -> IO ()
 assertNotificationMessage lastNotification expected = do
-    (_, message) <- (atomically $ readTVar lastNotification)
+    (_, message) <- atomically $ readTVar lastNotification
     message @?= expected
 
 

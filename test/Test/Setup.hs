@@ -24,7 +24,7 @@ import System.Posix.Signals
 import System.Posix.Types
 import System.IO.Temp (createTempDirectory, emptySystemTempFile, getCanonicalTemporaryDirectory)
 
-import qualified DBus as DBus
+import qualified DBus
 import qualified DBus.Client as DBus
 
 
@@ -102,14 +102,14 @@ setupDbus :: (MonadIO m, MonadResource m) => m (TVar Notification)
 setupDbus = do
     (_, (address, _)) <- allocate launchDbus killDbus
     liftIO $ setEnv "DBUS_SESSION_BUS_ADDRESS" address
-    (_, (lastNotification, _)) <- allocate exportNotificationService (unexportNotificationService)
+    (_, (lastNotification, _)) <- allocate exportNotificationService unexportNotificationService
     return lastNotification
 
 launchDbus :: IO (String, ProcessID)
 launchDbus = do
     output <-readProcess "dbus-launch" [] []
-    let Just address = asum $ fmap (stripPrefix "DBUS_SESSION_BUS_ADDRESS=") $ lines output
-    let Just pid = asum $ fmap (stripPrefix "DBUS_SESSION_BUS_PID=") $ lines output
+    let Just address = asum $ (stripPrefix "DBUS_SESSION_BUS_ADDRESS=") <$> lines output
+    let Just pid = asum $ (stripPrefix "DBUS_SESSION_BUS_PID=") <$> lines output
     return (address, read pid)
 
 

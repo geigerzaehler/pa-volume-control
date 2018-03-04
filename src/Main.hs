@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
@@ -23,7 +22,7 @@ helpString =
 
 commandParser :: Parser Command
 commandParser =
-    (infoOption helpString $ short 'h' <> long "help")
+    infoOption helpString (short 'h' <> long "help")
     <*> subparser
         ( volumeUpCommand <> volumeDownCommand <> toggleMuteCommand)
 
