@@ -4,10 +4,10 @@
 module Main where
 
 import Control.Concurrent.STM
-import Control.Monad.Trans.Resource as Res
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.Runners (NumThreads(..))
 import Test.Tasty.Runners.AntXML
 
 import Test.Setup
@@ -20,25 +20,16 @@ main = do
         (antXMLRunner:defaultIngredients)
         tests
 
+
 tests :: TestTree
-tests = withResource' setup $ \c -> testGroup "cli"
+tests =
+    -- We can only run one thread because there is only one
+    -- notification server and one PA_STATE_FILE
+    localOption (NumThreads 1) $
+    withResource' setup $ \c -> testGroup "cli"
     [ test_toggleMute c
+    , test_volumeControl c
     ]
-
-withResource' :: forall a. ResIO a -> (IO a -> TestTree) -> TestTree
-withResource' resource mkTest = withResource acquire close mkTest'
-    where
-        acquire :: IO (a, Res.InternalState)
-        acquire = do
-            resourceState <- Res.createInternalState
-            a <- runInternalState resource resourceState
-            return (a, resourceState)
-
-        close :: (a, Res.InternalState) -> IO ()
-        close (_, resourceState) = closeInternalState resourceState
-
-        mkTest' :: IO (a, Res.InternalState) -> TestTree
-        mkTest' get = mkTest (fst <$> get)
 
 
 test_toggleMute :: IO (TVar Notification) -> TestTree
@@ -76,3 +67,35 @@ test_toggleMute getLastNotification = testCaseSteps "toggle mute" $ \step -> do
     runVolumeControl ["mutetoggle"]
     assertStateLine "set-sink-mute DEFAULT_SINK no"
     assertStateLine "set-sink-mute OTHER_SINK yes"
+
+
+test_volumeControl :: IO (TVar Notification) -> TestTree
+test_volumeControl getLastNotification = testCaseSteps "volume control" $ \step -> do
+    lastNotification <- getLastNotification
+    writePacmdState
+        [ "set-default-sink DEFAULT_SINK"
+        , "set-sink-volume DEFAULT_SINK 0x8000"
+        , "set-sink-mute DEFAULT_SINK no"
+        , "set-sink-volume OTHER_SINK 0x8000"
+        , "set-sink-mute OTHER_SINK yes"
+        ]
+
+    step "Default sink volume up"
+    runVolumeControl ["volup"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x999a"
+    assertStateLine "set-sink-volume OTHER_SINK 0x8000"
+    assertNotificationMessage lastNotification "Volume 60%"
+
+    step "Default sink volume down"
+    runVolumeControl ["voldown"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x8000"
+    assertStateLine "set-sink-volume OTHER_SINK 0x8000"
+    assertNotificationMessage lastNotification "Volume 50%"
+
+    runPacmd ["set-default-sink", "OTHER_SINK"]
+
+    step "Other sink volume down"
+    runVolumeControl ["voldown"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x8000"
+    assertStateLine "set-sink-volume OTHER_SINK 0x6666"
+    assertNotificationMessage lastNotification "Muted 40%"

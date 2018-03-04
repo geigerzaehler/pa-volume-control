@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Test.Support (
-    writePacmdState
+    withResource'
+  , writePacmdState
   , runVolumeControl
   , runPacmd
   , assertNotificationMessage
@@ -10,6 +11,7 @@ module Test.Support (
 
 import Control.Concurrent.STM
 import Control.Monad
+import Control.Monad.Trans.Resource as Res
 
 import           Data.Foldable
 import           Data.Maybe
@@ -22,7 +24,26 @@ import System.Process
 import Text.Printf
 
 import Test.Setup
+import Test.Tasty
 import Test.Tasty.HUnit
+
+
+-- | Like 'Test.Tasty.withResource' but using the resource monad
+withResource' :: forall a. ResIO a -> (IO a -> TestTree) -> TestTree
+withResource' resource mkTest = withResource acquire close mkTest'
+    where
+        acquire :: IO (a, Res.InternalState)
+        acquire = do
+            resourceState <- Res.createInternalState
+            a <- runInternalState resource resourceState
+            return (a, resourceState)
+
+        close :: (a, Res.InternalState) -> IO ()
+        close (_, resourceState) = closeInternalState resourceState
+
+        mkTest' :: IO (a, Res.InternalState) -> TestTree
+        mkTest' get = mkTest (fst <$> get)
+
 
 
 writePacmdState :: [String] -> IO ()
