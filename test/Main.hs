@@ -29,6 +29,8 @@ tests =
     withResource' setup $ \c -> testGroup "cli"
     [ test_toggleMute c
     , test_volumeControl c
+    , test_volumeControlMinimum c
+    , test_volumeControlMaximum c
     ]
 
 
@@ -99,3 +101,41 @@ test_volumeControl getLastNotification = testCaseSteps "volume control" $ \step 
     assertStateLine "set-sink-volume DEFAULT_SINK 0x8000"
     assertStateLine "set-sink-volume OTHER_SINK 0x6666"
     assertNotificationMessage lastNotification "Muted 40%"
+
+
+test_volumeControlMinimum :: IO (TVar Notification) -> TestTree
+test_volumeControlMinimum getLastNotification = testCase "volume control minimum" $ do
+    lastNotification <- getLastNotification
+    writePacmdState
+        [ "set-default-sink DEFAULT_SINK"
+        , "set-sink-volume DEFAULT_SINK 0x0001"
+        , "set-sink-mute DEFAULT_SINK no"
+        ]
+
+    runVolumeControl ["voldown"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x0"
+    assertNotificationMessage lastNotification "Volume 0%"
+
+
+test_volumeControlMaximum :: IO (TVar Notification) -> TestTree
+test_volumeControlMaximum getLastNotification = testCaseSteps "volume control maximum" $ \step -> do
+    step "Limit volume"
+    lastNotification <- getLastNotification
+    writePacmdState
+        [ "set-default-sink DEFAULT_SINK"
+        , "set-sink-volume DEFAULT_SINK 0xffff"
+        , "set-sink-mute DEFAULT_SINK no"
+        ]
+
+    runVolumeControl ["volup"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x10000"
+    assertNotificationMessage lastNotification "Volume 100%"
+
+    runVolumeControl ["volup"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x10000"
+    assertNotificationMessage lastNotification "Volume 100%"
+
+    step "Beyond limit"
+    runVolumeControl ["volup", "--nolimit"]
+    assertStateLine "set-sink-volume DEFAULT_SINK 0x1199a"
+    assertNotificationMessage lastNotification "Volume 110%"

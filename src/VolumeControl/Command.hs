@@ -27,8 +27,9 @@ volChange noLimit inc = do
     SinkState { .. } <- getDefaultSinkState
     let limit = if noLimit then 200 else 100
     let newVolume = min (_sinkVolume + inc) limit
-    setSinkVolume _sinkName newVolume
-    notifyVolume newVolume _sinkIsMuted
+    let newVolume' = max newVolume 0
+    setSinkVolume _sinkName newVolume'
+    notifyVolume newVolume' _sinkIsMuted
     return ()
 
 
