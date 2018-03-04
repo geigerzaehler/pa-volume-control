@@ -32,7 +32,7 @@ jobs:
           name: Test
           command: |
             mkdir report
-            stack test --ta --xml=report/test.xml
+            stack test
       - store_test_results:
           path: ./report
       - store_artifacts:
