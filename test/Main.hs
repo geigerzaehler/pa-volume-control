@@ -5,10 +5,10 @@ module Main where
 
 import Control.Concurrent.STM
 
+import System.Environment
+
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Tasty.Runners (NumThreads(..))
-import Test.Tasty.Runners.AntXML
 
 import Test.Setup
 import Test.Support
@@ -16,16 +16,14 @@ import Test.Support
 
 main :: IO ()
 main = do
-    defaultMainWithIngredients
-        (antXMLRunner:defaultIngredients)
-        tests
+    -- We can only run one thread because there is only one
+    -- notification server and one PA_STATE_FILE
+    setEnv "TASTY_NUM_THREADS" "1"
+    defaultMain tests
 
 
 tests :: TestTree
 tests =
-    -- We can only run one thread because there is only one
-    -- notification server and one PA_STATE_FILE
-    localOption (NumThreads 1) $
     withResource' setup $ \c -> testGroup "cli"
     [ test_toggleMute c
     , test_volumeControl c
