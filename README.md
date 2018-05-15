@@ -1,6 +1,7 @@
 # pa-volume-control
 
-Command line volume control for PulseAudio. Heavily inspired by [`pavolume`][].
+Command line volume control for PulseAudio. Heavily inspired by
+[`pavolume`][pavolume].
 
 `pa-volume-control` is a command line tool that allows you to change the volume
 of the PulseAudio default sink. In addition the tool uses the DBus desktop
@@ -8,7 +9,7 @@ notification service to show the changed volume.
 
 ## Getting started
 
-You’ll need [`stack`][] to build the project.
+You’ll need [`stack`][stack] to build the project.
 
     git clone https://github.com/geigerzaehler/pa-volume-control.git
     cd pa-volume-control
