@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: haskell
+      - image: haskell:8.4.3
         environment:
     steps:
       - checkout
@@ -23,7 +23,7 @@ jobs:
           command: |
             apt-get -qq update
             apt-get -qqy install pkg-config libxml2-dev dbus-x11
-      - run: stack build --test --no-run-tests
+      - run: stack build --test --pedantic --no-run-tests
       - save_cache:
           key: stack-v2-{{ checksum "package.yaml" }}
           paths: [ ~/.stack ]

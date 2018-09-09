@@ -11,7 +11,6 @@ import           Control.Monad
 import           Data.Int (Int32)
 import qualified Data.Map as Map
 import           Data.Maybe
-import           Data.Monoid
 import           Data.Word (Word32)
 
 import qualified DBus

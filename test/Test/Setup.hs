@@ -123,16 +123,24 @@ exportNotificationService = do
     lastNotification <- liftIO $ newTVarIO (0, "")
     client <- DBus.connectSession
     _ <- DBus.requestName client "org.freedesktop.Notifications" []
-    DBus.export client "/"
-        [ DBus.method
-          "org.freedesktop.Notifications"
-          "Notify"
-          (fromJust $ DBus.parseSignature "susssasa{sv}i")
-          (fromJust $ DBus.parseSignature "u")
-          (dbusNotify lastNotification)
-        ]
+    DBus.export client "/" $ notificationInterface lastNotification
     return (lastNotification, client)
+  where
+    notificationInterface :: TVar Notification -> DBus.Interface
+    notificationInterface lastNotification = DBus.Interface
+        { DBus.interfaceName = "org.freedesktop.Notifications"
+        , DBus.interfaceMethods = [ notify lastNotification ]
+        , DBus.interfaceProperties = []
+        , DBus.interfaceSignals = []
+        }
 
+    notify :: TVar Notification -> DBus.Method
+    notify lastNotification = DBus.Method
+        { DBus.methodName = "Notify"
+        , DBus.inSignature = fromJust $ DBus.parseSignature "susssasa{sv}i"
+        , DBus.outSignature = fromJust $ DBus.parseSignature "u"
+        , DBus.methodHandler = dbusNotify lastNotification
+        }
 
 unexportNotificationService :: (a, DBus.Client) -> IO ()
 unexportNotificationService (_, client)= do
@@ -142,8 +150,8 @@ unexportNotificationService (_, client)= do
 
 -- | Mock implementation of the DBus Notify method that just updates
 -- the notifcation 'TVar'.
-dbusNotify :: TVar Notification -> DBus.MethodCall -> IO DBus.Reply
+dbusNotify :: MonadIO m => TVar Notification -> DBus.MethodCall -> m DBus.Reply
 dbusNotify lastNotification methodCall = do
     let _ :replacesId:_:summary: _ = DBus.methodCallBody methodCall
-    atomically $ writeTVar lastNotification (fromJust $ DBus.fromVariant replacesId, fromJust $ DBus.fromVariant summary)
-    return $ DBus.replyReturn [ DBus.toVariant (1 :: Word32) ]
+    liftIO $ atomically $ writeTVar lastNotification (fromJust $ DBus.fromVariant replacesId, fromJust $ DBus.fromVariant summary)
+    return $ DBus.ReplyReturn [ DBus.toVariant (1 :: Word32) ]

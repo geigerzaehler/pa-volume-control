@@ -10,7 +10,6 @@ module VolumeControl.PulseAudio (
 
 import           Data.Foldable
 import           Data.Int (Int32)
-import           Data.Monoid
 import           Data.String (lines, words)
 import           Numeric
 import           Text.Read (readMaybe)
