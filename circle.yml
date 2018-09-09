@@ -17,12 +17,15 @@ jobs:
             export PATH=~/.local/bin:$PATH
             echo "system-ghc: true" >> ~/.stack/config.yaml
             echo "skip-ghc-check: true" >> ~/.stack/config.yaml
+            echo "with-hpack: /usr/local/bin/hpack" >> ~/.stack/config.yaml
             stack --version
       - run:
           name: Install system dependencies
           command: |
             apt-get -qq update
-            apt-get -qqy install pkg-config libxml2-dev dbus-x11
+            apt-get -qqy install pkg-config libxml2-dev dbus-x11 curl
+            curl -sSL https://github.com/sol/hpack/releases/download/0.31.0/hpack_linux.gz | gunzip > /usr/local/bin/hpack
+            chmod +x /usr/local/bin/hpack
       - run: stack build --test --pedantic --no-run-tests
       - save_cache:
           key: stack-v2-{{ checksum "package.yaml" }}
