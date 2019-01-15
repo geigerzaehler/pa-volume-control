@@ -5,6 +5,9 @@ module VolumeControl.PulseAudio (
   , setSinkVolume
   , setSinkMute
   , SinkState(..)
+  , getDefaultSourceState
+  , setSourceMute
+  , SourceState(..)
   , Volume
 ) where
 
@@ -38,6 +41,12 @@ setSinkMute sinkName isMute = do
     _ <- readProcessWithExitCode "pacmd" ["set-sink-mute", T.unpack sinkName, muteString] ""
     return ()
 
+setSourceMute :: T.Text -> Bool -> IO ()
+setSourceMute sourceName isMute = do
+    let muteString = if isMute then "yes" else "no"
+    _ <- readProcessWithExitCode "pacmd" ["set-source-mute", T.unpack sourceName, muteString] ""
+    return ()
+
 
 data SinkState = SinkState
     { _sinkVolume :: Int
@@ -60,6 +69,28 @@ getDefaultSinkState = do
         _sinkIsMuted <- dumpLookup2 "set-sink-mute" _sinkName boolParser dump
         _sinkVolume <- dumpLookup2 "set-sink-volume" _sinkName volumeParser dump
         pure $ SinkState {..}
+
+
+data SourceState = SourceState
+    { _sourceIsMuted :: Bool
+    , _sourceName :: T.Text
+    }
+
+
+-- | Get the source state for the default source from the @pacmd@ command.
+getDefaultSourceState :: IO SourceState
+getDefaultSourceState = do
+    infoDump <- getDump
+    case readSink infoDump of
+        Just x -> pure x
+        Nothing -> error "Cannot find default source"
+  where
+    readSink :: PulseAudioDump -> Maybe SourceState
+    readSink dump = do
+        _sourceName <- dumpLookup1 "set-default-source" textParser dump
+        _sourceIsMuted <- dumpLookup2 "set-source-mute" _sourceName boolParser dump
+        pure $ SourceState {..}
+
 
 --
 -- * Dump handling

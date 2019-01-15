@@ -52,7 +52,7 @@ writePacmdState contents = do
     T.writeFile filePath $ T.pack $ unlines contents
 
 
-assertNotificationMessage :: TVar Notification -> String -> IO ()
+assertNotificationMessage :: (HasCallStack) => TVar Notification -> String -> IO ()
 assertNotificationMessage lastNotification expected = do
     (_, message) <- atomically $ readTVar lastNotification
     message @?= expected
@@ -60,7 +60,7 @@ assertNotificationMessage lastNotification expected = do
 
 -- | Assert that the given string is present in the pulseaudio mock
 -- state.
-assertStateLine :: String -> IO ()
+assertStateLine :: (HasCallStack) => String -> IO ()
 assertStateLine line = do
     let errorTemplate =
             "Could not find line in pulse audio state\n\

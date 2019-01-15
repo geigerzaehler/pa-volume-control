@@ -21,6 +21,7 @@ Now you can run the following commands
     pa-volume-control volup --no-limit
     pa-volume-control voldown
     pa-volume-control mutetoggle
+    pa-volume-control source-mute-toggle
 
 The `--no-limit` flag allows you to increase the volume beyond 100%, possibly
 introducing clipping.
@@ -34,6 +35,7 @@ following key bindings to control `pa-volume-control`:
     awful.key({         }, "XF86AudioRaiseVolume", function() awful.util.spawn("pa-volume-control voldown") end),
     awful.key({ "Shift" }, "XF86AudioRaiseVolume", function() awful.util.spawn("pa-volmue-control volup --nolimit") end),
     awful.key({         }, "XF86AudioMute",        function() awful.util.spawn("pa-volume-control mutetoggle") end),
+    awful.key({         }, "XF86AudioMicMute",     function() awful.util.spawn("pa-volume-control source-mute-toggle") end),
 
 ## Differences from `pavolume`
 
@@ -41,6 +43,7 @@ following key bindings to control `pa-volume-control`:
   a bunch of volume notifications.
 - Controls the volume of the output configured as the default instead of the
   first one.
+- Can toggle mute state of the default source
 - Only a subset of the command is supported
 - Configuration file is not supported
 

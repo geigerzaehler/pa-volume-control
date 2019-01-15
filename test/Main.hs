@@ -26,6 +26,7 @@ tests :: TestTree
 tests =
     withResource' setup $ \c -> testGroup "cli"
     [ test_toggleMute c
+    , test_toggleSourceMute
     , test_volumeControl c
     , test_volumeControlMinimum c
     , test_volumeControlMaximum c
@@ -68,6 +69,38 @@ test_toggleMute getLastNotification = testCaseSteps "toggle mute" $ \step -> do
     assertStateLine "set-sink-mute DEFAULT_SINK no"
     assertStateLine "set-sink-mute OTHER_SINK yes"
 
+test_toggleSourceMute :: TestTree
+test_toggleSourceMute = testCaseSteps "toggle source mute" $ \step -> do
+    writePacmdState
+        [ "set-default-source DEFAULT_SOURCE"
+        , "set-source-mute DEFAULT_SOURCE no"
+        , "set-source-mute OTHER_SOURCE yes"
+        ]
+
+    step "Default source mute"
+    assertStateLine "set-source-mute DEFAULT_SOURCE no"
+    assertStateLine "set-source-mute OTHER_SOURCE yes"
+    runVolumeControl ["source-mute-toggle"]
+    assertStateLine "set-source-mute DEFAULT_SOURCE yes"
+    assertStateLine "set-source-mute OTHER_SOURCE yes"
+
+
+    step "Default source unmute"
+    runVolumeControl ["source-mute-toggle"]
+    assertStateLine "set-source-mute DEFAULT_SOURCE no"
+    assertStateLine "set-source-mute OTHER_SOURCE yes"
+
+    runPacmd ["set-default-source", "OTHER_SOURCE"]
+
+    step "Other source unmute"
+    runVolumeControl ["source-mute-toggle"]
+    assertStateLine "set-source-mute DEFAULT_SOURCE no"
+    assertStateLine "set-source-mute OTHER_SOURCE no"
+
+    step "Other source mute"
+    runVolumeControl ["source-mute-toggle"]
+    assertStateLine "set-source-mute DEFAULT_SOURCE no"
+    assertStateLine "set-source-mute OTHER_SOURCE yes"
 
 test_volumeControl :: IO (TVar Notification) -> TestTree
 test_volumeControl getLastNotification = testCaseSteps "volume control" $ \step -> do
