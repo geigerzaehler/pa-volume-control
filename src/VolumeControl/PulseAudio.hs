@@ -44,9 +44,6 @@ data SinkState = SinkState
     , _sinkName :: String }
 
 
-type PulseAudioDump = [(String, [String])]
-
-
 -- | Get the sink state for the default sink from the @pacmd@ command.
 getDefaultSinkState :: IO SinkState
 getDefaultSinkState = do
@@ -60,46 +57,53 @@ getDefaultSinkState = do
         , _sinkIsMuted = sinkIsMuted }
 
 
-getDump :: IO PulseAudioDump
-getDump = parse <$> readProcess "pacmd" ["dump"] []
-    where
-    parse = foldr' parseLine [] . lines
-
-    parseLine line items
-        | take 1 line == "#" = items
-        | (key : value) <- words line = (key, value) : items
-        | otherwise = items
-
-
 readDefaultSink :: PulseAudioDump -> Maybe String
-readDefaultSink = asum . fmap match
-    where
-    match ("set-default-sink", [ sinkName ]) = Just sinkName
-    match _ = Nothing
-
+readDefaultSink = dumpLookup1 "set-default-sink" stringParser
 
 readSinkMute :: String -> PulseAudioDump -> Maybe Bool
-readSinkMute sinkName = asum . fmap match
-    where
-    match x
-        | ("set-sink-mute", [ sinkName', isMute ]) <- x
-        , sinkName' == sinkName
-        = readBool isMute
-        | otherwise = Nothing
-    readBool "yes" = Just True
-    readBool "no" = Just False
-    readBool _ = Nothing
-
+readSinkMute sinkName =
+    dumpLookup2 "set-sink-mute" sinkName boolParser
 
 readSinkVolume :: String -> PulseAudioDump -> Maybe Volume
-readSinkVolume sinkName = asum . fmap match
-    where
-    match x
-        | ("set-sink-volume", [ sinkName', volume ]) <- x
-        , sinkName' == sinkName
-        = volumeFromRaw <$> readMaybe volume
-        | otherwise = Nothing
+readSinkVolume sinkName =
+    dumpLookup2 "set-sink-volume" sinkName volumeParser
 
+--
+-- * Dump handling
+--
+
+newtype PulseAudioDump = PulseAudioDump [[String]]
+
+getDump :: IO PulseAudioDump
+getDump = PulseAudioDump . parse <$> readProcess "pacmd" ["dump"] []
+  where
+    parse = map words . filter isNotComment . lines
+    isNotComment line = take 1 line /= "#"
+
+dumpLookup1 :: String -> Parser a -> PulseAudioDump -> Maybe a
+dumpLookup1 x1 parse (PulseAudioDump dump) = asum $ map match dump
+  where
+    match [x1', value] | x1' == x1 = parse value
+    match _ = Nothing
+
+dumpLookup2 :: String -> String -> Parser a -> PulseAudioDump -> Maybe a
+dumpLookup2 x1 x2 parse (PulseAudioDump dump) = asum $ map match dump
+  where
+    match [x1', x2', value] | x1' == x1, x2' == x2 = parse value
+    match _ = Nothing
+
+type Parser a = String -> Maybe a
+
+boolParser :: Parser Bool
+boolParser "yes" = Just True
+boolParser "no" = Just False
+boolParser _ = Nothing
+
+volumeParser :: Parser Volume
+volumeParser value =  volumeFromRaw <$> readMaybe value
+
+stringParser :: Parser String
+stringParser = Just
 
 
 --
