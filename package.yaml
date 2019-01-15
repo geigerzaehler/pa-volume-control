@@ -47,13 +47,12 @@ ghc-options:
 
 library:
   source-dirs: src
-  other-modules:
-  - Main
 
 executables:
   pa-volume-control:
-    main:                Main.hs
-    source-dirs:         src
+    main:                exe/Main.hs
+    dependencies:
+    - pa-volume-control
     ghc-options:
     - -threaded
     - -rtsopts

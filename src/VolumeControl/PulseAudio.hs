@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module VolumeControl.PulseAudio (
     getDefaultSinkState
   , setSinkVolume
@@ -10,10 +11,10 @@ module VolumeControl.PulseAudio (
 
 import           Data.Foldable
 import           Data.Int (Int32)
-import           Data.String (lines, words)
 import           Numeric
-import           Text.Read (readMaybe)
 import           System.Process
+import           Text.Read (readMaybe)
+import qualified Data.Text as T
 
 
 -- | Volume as a percentage
@@ -23,83 +24,79 @@ type Volume = Int
 --
 -- Volume control
 --
-setSinkVolume :: String -> Volume -> IO ()
+setSinkVolume :: T.Text -> Volume -> IO ()
 setSinkVolume sink volume = do
     let volume' = max volume 0
     let volString = "0x" <> showHex (volumeToRaw volume') ""
-    _ <- readProcessWithExitCode "pacmd" ["set-sink-volume", sink, volString] ""
+    _ <- readProcessWithExitCode "pacmd" ["set-sink-volume", T.unpack sink, volString] ""
     return ()
 
 
-setSinkMute :: String -> Bool -> IO ()
+setSinkMute :: T.Text -> Bool -> IO ()
 setSinkMute sinkName isMute = do
     let muteString = if isMute then "yes" else "no"
-    _ <- readProcessWithExitCode "pacmd" ["set-sink-mute", sinkName, muteString] ""
+    _ <- readProcessWithExitCode "pacmd" ["set-sink-mute", T.unpack sinkName, muteString] ""
     return ()
 
 
 data SinkState = SinkState
     { _sinkVolume :: Int
     , _sinkIsMuted :: Bool
-    , _sinkName :: String }
-
-
-type PulseAudioDump = [(String, [String])]
+    , _sinkName :: T.Text
+    }
 
 
 -- | Get the sink state for the default sink from the @pacmd@ command.
 getDefaultSinkState :: IO SinkState
 getDefaultSinkState = do
     infoDump <- getDump
-    let Just sinkName = readDefaultSink infoDump
-    let Just sinkIsMuted = readSinkMute sinkName infoDump
-    let Just sinkVolume = readSinkVolume sinkName infoDump
-    return SinkState
-        { _sinkName = sinkName
-        , _sinkVolume = sinkVolume
-        , _sinkIsMuted = sinkIsMuted }
+    case readSink infoDump of
+        Just x -> pure x
+        Nothing -> error "Cannot find default sink"
+  where
+    readSink :: PulseAudioDump -> Maybe SinkState
+    readSink dump = do
+        _sinkName <- dumpLookup1 "set-default-sink" textParser dump
+        _sinkIsMuted <- dumpLookup2 "set-sink-mute" _sinkName boolParser dump
+        _sinkVolume <- dumpLookup2 "set-sink-volume" _sinkName volumeParser dump
+        pure $ SinkState {..}
 
+--
+-- * Dump handling
+--
+
+newtype PulseAudioDump = PulseAudioDump [[T.Text]]
 
 getDump :: IO PulseAudioDump
-getDump = parse <$> readProcess "pacmd" ["dump"] []
-    where
-    parse = foldr' parseLine [] . lines
+getDump = PulseAudioDump . parse . T.pack <$> readProcess "pacmd" ["dump"] []
+  where
+    parse = map T.words . filter isNotComment . T.lines
+    isNotComment line = T.take 1 line /= "#"
 
-    parseLine line items
-        | take 1 line == "#" = items
-        | (key : value) <- words line = (key, value) : items
-        | otherwise = items
-
-
-readDefaultSink :: PulseAudioDump -> Maybe String
-readDefaultSink = asum . fmap match
-    where
-    match ("set-default-sink", [ sinkName ]) = Just sinkName
+dumpLookup1 :: T.Text -> Parser a -> PulseAudioDump -> Maybe a
+dumpLookup1 x1 parse (PulseAudioDump dump) = asum $ map match dump
+  where
+    match [x1', value] | x1' == x1 = parse value
     match _ = Nothing
 
+dumpLookup2 :: T.Text -> T.Text -> Parser a -> PulseAudioDump -> Maybe a
+dumpLookup2 x1 x2 parse (PulseAudioDump dump) = asum $ map match dump
+  where
+    match [x1', x2', value] | x1' == x1, x2' == x2 = parse value
+    match _ = Nothing
 
-readSinkMute :: String -> PulseAudioDump -> Maybe Bool
-readSinkMute sinkName = asum . fmap match
-    where
-    match x
-        | ("set-sink-mute", [ sinkName', isMute ]) <- x
-        , sinkName' == sinkName
-        = readBool isMute
-        | otherwise = Nothing
-    readBool "yes" = Just True
-    readBool "no" = Just False
-    readBool _ = Nothing
+type Parser a = T.Text -> Maybe a
 
+boolParser :: Parser Bool
+boolParser "yes" = Just True
+boolParser "no" = Just False
+boolParser _ = Nothing
 
-readSinkVolume :: String -> PulseAudioDump -> Maybe Volume
-readSinkVolume sinkName = asum . fmap match
-    where
-    match x
-        | ("set-sink-volume", [ sinkName', volume ]) <- x
-        , sinkName' == sinkName
-        = volumeFromRaw <$> readMaybe volume
-        | otherwise = Nothing
+volumeParser :: Parser Volume
+volumeParser value = volumeFromRaw <$> readMaybe (T.unpack value)
 
+textParser :: Parser T.Text
+textParser = Just
 
 
 --
