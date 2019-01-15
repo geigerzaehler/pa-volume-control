@@ -2,14 +2,14 @@ version: 2
 jobs:
   build:
     docker:
-      - image: haskell:8.4.3
+      - image: haskell:8.6.3
         environment:
     steps:
       - checkout
       - restore_cache:
           keys:
-            - stack-v2-{{ checksum "package.yaml" }}
-            - stack-v2-
+            - stack-v3-{{ checksum "package.yaml" }}
+            - stack-v3-
       - run:
           name: Prepare stack
           command: |
@@ -28,7 +28,7 @@ jobs:
             chmod +x /usr/local/bin/hpack
       - run: stack build --test --pedantic --no-run-tests
       - save_cache:
-          key: stack-v2-{{ checksum "package.yaml" }}
+          key: stack-v3-{{ checksum "package.yaml" }}
           paths: [ ~/.stack ]
           when: always
       - run:
