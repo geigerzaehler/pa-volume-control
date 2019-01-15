@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+module VolumeControl.Main (main) where
 
 import Data.Monoid ((<>))
 import VolumeControl.Command
