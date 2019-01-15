@@ -109,8 +109,8 @@ setupDbus = do
 launchDbus :: IO (String, ProcessID)
 launchDbus = do
     output <-readProcess "dbus-launch" [] []
-    let Just address = asum $ (stripPrefix "DBUS_SESSION_BUS_ADDRESS=") <$> lines output
-    let Just pid = asum $ (stripPrefix "DBUS_SESSION_BUS_PID=") <$> lines output
+    let Just address = asum $ stripPrefix "DBUS_SESSION_BUS_ADDRESS=" <$> lines output
+    let Just pid = asum $ stripPrefix "DBUS_SESSION_BUS_PID=" <$> lines output
     return (address, read pid)
 
 

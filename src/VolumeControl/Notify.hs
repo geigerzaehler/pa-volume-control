@@ -32,7 +32,6 @@ notifyVolume volume isMuted = do
         , replacesId = notificationId }
     when (newNotificationId /= notificationId) $
         writeNotificationId newNotificationId
-    return ()
 
 
 

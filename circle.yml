@@ -8,8 +8,8 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - stack-v5-{{ checksum "package.yaml" }}
-            - stack-v5-
+            - stack-v6-{{ checksum "package.yaml" }}
+            - stack-v6-
       - run:
           name: Prepare stack
           command: |
@@ -25,10 +25,10 @@ jobs:
             apt-get -qqy install pkg-config libxml2-dev dbus-x11 curl
             curl -sSL https://github.com/sol/hpack/releases/download/0.31.0/hpack_linux.gz | gunzip > /usr/local/bin/hpack
             chmod +x /usr/local/bin/hpack
-            stack build weeder
+            stack build weeder hlint
       - run: stack build --test --pedantic --no-run-tests
       - save_cache:
-          key: stack-v5-{{ checksum "package.yaml" }}
+          key: stack-v6-{{ checksum "package.yaml" }}
           paths: [ ~/.stack ]
           when: always
       - run:
@@ -40,6 +40,10 @@ jobs:
           name: Weeder
           command: |
             stack exec -- weeder --match
+      - run:
+          name: HLint
+          command: |
+            stack exec -- hlint src test
       - store_test_results:
           path: ./report
       - store_artifacts:
