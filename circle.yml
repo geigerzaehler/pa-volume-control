@@ -22,9 +22,7 @@ jobs:
           name: Install system dependencies
           command: |
             apt-get -qq update
-            apt-get -qqy install pkg-config libxml2-dev dbus-x11 curl
-            curl -sSL https://github.com/sol/hpack/releases/download/0.31.0/hpack_linux.gz | gunzip > /usr/local/bin/hpack
-            chmod +x /usr/local/bin/hpack
+            apt-get -qqy install pkg-config libxml2-dev dbus-x11
             stack build weeder hlint
       - run: stack build --test --pedantic --no-run-tests
       - save_cache:
