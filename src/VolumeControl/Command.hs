@@ -13,6 +13,7 @@ data Command
     = VolumeUp { volumeUpNoLimit :: Bool }
     | VolumeDown
     | ToggleMute
+    | ToggleSourceMute
     deriving (Show)
 
 
@@ -20,6 +21,7 @@ execCommand :: Command -> IO ()
 execCommand (VolumeUp noLimit) = volChange noLimit 10
 execCommand VolumeDown = volChange True (-10)
 execCommand ToggleMute = toggleMute
+execCommand ToggleSourceMute = toggleSourceMute
 
 
 volChange :: Bool -> Int -> IO ()
@@ -39,4 +41,10 @@ toggleMute = do
     let newIsMuted = not _sinkIsMuted
     setSinkMute _sinkName newIsMuted
     notifyVolume _sinkVolume newIsMuted
+    return ()
+
+toggleSourceMute :: IO ()
+toggleSourceMute = do
+    SourceState { .. } <- getDefaultSourceState
+    setSourceMute _sourceName (not _sourceIsMuted)
     return ()

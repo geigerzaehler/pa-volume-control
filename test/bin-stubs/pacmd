@@ -10,7 +10,7 @@ fi
 
 if [[ "$1" == "dump" ]]; then
   cat $PACMD_STATE_FILE
-elif [[ "$1" =~ ^set-sink-[a-z]+$ ]]; then
+elif [[ "$1" =~ ^set-(sink|source)-[a-z]+$ ]]; then
   sed -i "/^$1 $2/c $*" $PACMD_STATE_FILE
 else
   sed -i "/^$1/c $*" $PACMD_STATE_FILE
