@@ -8,16 +8,15 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - stack-v3-{{ checksum "package.yaml" }}
-            - stack-v3-
+            - stack-v5-{{ checksum "package.yaml" }}
+            - stack-v5-
       - run:
           name: Prepare stack
           command: |
             stack upgrade
             export PATH=~/.local/bin:$PATH
-            echo "system-ghc: true" >> ~/.stack/config.yaml
-            echo "skip-ghc-check: true" >> ~/.stack/config.yaml
-            echo "with-hpack: /usr/local/bin/hpack" >> ~/.stack/config.yaml
+            stack config set system-ghc --global true
+            stack config set install-ghc --global false
             stack --version
       - run:
           name: Install system dependencies
@@ -26,9 +25,10 @@ jobs:
             apt-get -qqy install pkg-config libxml2-dev dbus-x11 curl
             curl -sSL https://github.com/sol/hpack/releases/download/0.31.0/hpack_linux.gz | gunzip > /usr/local/bin/hpack
             chmod +x /usr/local/bin/hpack
+            stack build weeder
       - run: stack build --test --pedantic --no-run-tests
       - save_cache:
-          key: stack-v3-{{ checksum "package.yaml" }}
+          key: stack-v5-{{ checksum "package.yaml" }}
           paths: [ ~/.stack ]
           when: always
       - run:
@@ -36,6 +36,10 @@ jobs:
           command: |
             mkdir report
             stack test
+      - run:
+          name: Weeder
+          command: |
+            stack exec -- weeder --match
       - store_test_results:
           path: ./report
       - store_artifacts:
