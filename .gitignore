@@ -3,3 +3,4 @@ pa-volume-control.cabal
 dist
 dist-newstyle
 *~
+/.ghc.environment.*
