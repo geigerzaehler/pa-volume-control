@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+{-# LANGUAGE RecordWildCards #-}
 module VolumeControl.PulseAudio (
     getDefaultSinkState
   , setSinkVolume
@@ -50,25 +50,16 @@ data SinkState = SinkState
 getDefaultSinkState :: IO SinkState
 getDefaultSinkState = do
     infoDump <- getDump
-    let Just sinkName = readDefaultSink infoDump
-    let Just sinkIsMuted = readSinkMute sinkName infoDump
-    let Just sinkVolume = readSinkVolume sinkName infoDump
-    return SinkState
-        { _sinkName = sinkName
-        , _sinkVolume = sinkVolume
-        , _sinkIsMuted = sinkIsMuted }
-
-
-readDefaultSink :: PulseAudioDump -> Maybe T.Text
-readDefaultSink = dumpLookup1 "set-default-sink" textParser
-
-readSinkMute :: T.Text -> PulseAudioDump -> Maybe Bool
-readSinkMute sinkName =
-    dumpLookup2 "set-sink-mute" sinkName boolParser
-
-readSinkVolume :: T.Text -> PulseAudioDump -> Maybe Volume
-readSinkVolume sinkName =
-    dumpLookup2 "set-sink-volume" sinkName volumeParser
+    case readSink infoDump of
+        Just x -> pure x
+        Nothing -> error "Cannot find default sink"
+  where
+    readSink :: PulseAudioDump -> Maybe SinkState
+    readSink dump = do
+        _sinkName <- dumpLookup1 "set-default-sink" textParser dump
+        _sinkIsMuted <- dumpLookup2 "set-sink-mute" _sinkName boolParser dump
+        _sinkVolume <- dumpLookup2 "set-sink-volume" _sinkName volumeParser dump
+        pure $ SinkState {..}
 
 --
 -- * Dump handling
