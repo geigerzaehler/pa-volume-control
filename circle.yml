@@ -3,7 +3,6 @@ jobs:
   build:
     docker:
       - image: haskell:8.6.3
-        environment:
     steps:
       - checkout
       - restore_cache:
@@ -24,7 +23,7 @@ jobs:
             apt-get -qq update
             apt-get -qqy install pkg-config libxml2-dev dbus-x11
             stack build weeder hlint
-      - run: stack build --test --pedantic --no-run-tests
+      - run: stack build --test --pedantic --no-run-tests --flag pa-volume-control:static
       - save_cache:
           key: stack-v6-{{ checksum "package.yaml" }}
           paths: [ ~/.stack ]

@@ -20,18 +20,31 @@ extra-source-files:
 description: |
   CLI tool to change the volume of PulseAudio and notify the user.
 
+flags:
+  static:
+    description: Build a static executable
+    default: false
+    manual: true
+
 build-type: Custom
 custom-setup:
   dependencies:
   - base >= 4.7 && < 5
   - Cabal ^>= 2.4.0.1
 
-
 ghc-options:
 - -Wall
 - -Wincomplete-uni-patterns
 - -Wincomplete-record-updates
 - -Werror
+
+when:
+- condition: flag(static)
+  then:
+    ghc-options:
+    - -optl-static
+    - -optl-pthread
+  else: {}
 
 library:
   source-dirs: src
