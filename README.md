@@ -9,13 +9,8 @@ notification service to show the changed volume.
 
 ## Getting started
 
-You’ll need [`stack`][stack] to build the project.
-
-    git clone https://github.com/geigerzaehler/pa-volume-control.git
-    cd pa-volume-control
-    stack install
-
-Now you can run the following commands
+Download the [latest release binary][releases] from Github. Now you can try the
+following commands to control your volume
 
     pa-volume-control volup
     pa-volume-control volup --no-limit
@@ -25,6 +20,8 @@ Now you can run the following commands
 
 The `--no-limit` flag allows you to increase the volume beyond 100%, possibly
 introducing clipping.
+
+[releases]: https://github.com/geigerzaehler/pa-volume-control/releases
 
 ## Using with awesome
 
