@@ -80,7 +80,7 @@ jobs:
           name: Create release
           command: |
             tag="$CIRCLE_TAG"
-            release_name="$tag $(date --iso=date)"
+            release_name="$tag - $(date --iso=date)"
 
             export GITHUB_REPO="$CIRCLE_PROJECT_REPONAME"
             export GITHUB_USER="$CIRCLE_PROJECT_USERNAME"
