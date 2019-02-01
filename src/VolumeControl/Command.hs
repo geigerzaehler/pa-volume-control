@@ -32,7 +32,6 @@ volChange noLimit inc = do
     let newVolume' = max newVolume 0
     setSinkVolume _sinkName newVolume'
     notifyVolume newVolume' _sinkIsMuted
-    return ()
 
 
 toggleMute :: IO ()
@@ -41,10 +40,9 @@ toggleMute = do
     let newIsMuted = not _sinkIsMuted
     setSinkMute _sinkName newIsMuted
     notifyVolume _sinkVolume newIsMuted
-    return ()
+
 
 toggleSourceMute :: IO ()
 toggleSourceMute = do
     SourceState { .. } <- getDefaultSourceState
     setSourceMute _sourceName (not _sourceIsMuted)
-    return ()
