@@ -3,15 +3,15 @@ name: default
 
 steps:
 - name: build
-	image: docker:18.09.1
-	commands:
-	- docker image ls
-	volumes:
-	- name: docker
-		path: /var/run/docker.sock
+  image: docker:18.09.1
+  commands:
+  - docker image ls
+  volumes:
+  - name: docker
+    path: /var/run/docker.sock
 
 volumes:
 - name: docker
-	host:
-		path: /var/run/docker.sock
+  host:
+    path: /var/run/docker.sock
 
