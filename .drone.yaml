@@ -6,3 +6,6 @@ steps:
   image: alpine
   commands:
   - echo hello world
+  - false
+  - echo does this work
+
