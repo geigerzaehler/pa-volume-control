@@ -5,13 +5,13 @@ steps:
 - name: build
   image: docker:18.09.1
   commands:
+  - pwd
   - docker image ls
   volumes:
-  - name: docker
-    path: /var/run/docker.sock
+  - name: workspace
+    path: /workspace
 
 volumes:
-- name: docker
-  host:
-    path: /var/run/docker.sock
+- name: workspace
+  temp: {}
 
