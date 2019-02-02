@@ -3,15 +3,8 @@ name: default
 
 steps:
 - name: build
-  image: docker:18.09.1
+  image: r.j3ss.co/img
+  privileged: true
   commands:
-  - pwd
-  - docker image ls
-  volumes:
-  - name: ws
-    path: /workspace
-
-volumes:
-- name: ws
-  temp: {}
-
+  - ls -l
+  - img build
