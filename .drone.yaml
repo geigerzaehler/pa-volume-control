@@ -3,9 +3,15 @@ name: default
 
 steps:
 - name: build
-  image: alpine
+  image: docker:18.09.1
   commands:
-  - echo hello world
-  - false
-  - echo does this work
+	- docker image ls
+  volumes:
+  - name: docker
+    path: /var/run/docker.sock
+
+volumes:
+- name: docker
+  host:
+    path: /var/run/docker.sock
 
