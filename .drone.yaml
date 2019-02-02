@@ -8,10 +8,10 @@ steps:
   - pwd
   - docker image ls
   volumes:
-  - name: workspace
+  - name: ws
     path: /workspace
 
 volumes:
-- name: workspace
+- name: ws
   temp: {}
 
